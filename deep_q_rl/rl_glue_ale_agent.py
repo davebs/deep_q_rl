@@ -45,6 +45,7 @@ import argparse
 import matplotlib.pyplot as plt
 
 import cnn_q_learner
+import rnn_learner
 import ale_data_set
 import theano
 
@@ -89,13 +90,13 @@ class NeuralAgent(Agent):
                             help='Starting value for epsilon.')
         parser.add_argument('--epsilon_min', type=float, default=0.1,
                             help='Minimum epsilon.')
-        parser.add_argument('--epsilon_decay', type=float, default=1000000,
+        parser.add_argument('--epsilon_decay', type=float, default=10000,
                             help='Number of steps to minimum epsilon.')
         parser.add_argument('--phi_length', type=int, default=4,
                             help='History length')
-        parser.add_argument('--max_history', type=int, default=1000000,
+        parser.add_argument('--max_history', type=int, default=10000,
                             help='Maximum number of steps stored')
-        parser.add_argument('--batch_size', type=int, default=32,
+        parser.add_argument('--batch_size', type=int, default=128,
                             help='Batch size')
         parser.add_argument('--exp_pref', type=str, default="",
                             help='Experiment name prefix')
@@ -165,9 +166,11 @@ class NeuralAgent(Agent):
 
         if self.nn_file is None:
             self.network = self._init_network()
+            print '*** CREATING ENTIRELY NEW MODEL ***'
         else:
             handle = open(self.nn_file, 'r')
             self.network = cPickle.load(handle)
+            print '*** LOADING FILE FOR RESUME ***'
 
         self._open_results_file()
         self._open_learning_file()
@@ -185,13 +188,12 @@ class NeuralAgent(Agent):
         self.last_action = None
 
 
-
     def _init_network(self):
         """
         A subclass may override this if a different sort
         of network is desired.
         """
-        return cnn_q_learner.CNNQLearner(self.num_actions,
+        return rnn_learner.RNNLearner(self.num_actions,
                                          self.phi_length,
                                          CROPPED_WIDTH,
                                          CROPPED_HEIGHT,
@@ -201,7 +203,6 @@ class NeuralAgent(Agent):
                                          momentum=self.momentum,
                                          batch_size=self.batch_size,
                                          approximator='cuda_conv')
-        
 
 
     def _open_results_file(self):
@@ -210,9 +211,11 @@ class NeuralAgent(Agent):
         self.results_file.write(\
             'epoch,num_episodes,total_reward,reward_per_epoch,mean_q\n')
 
+
     def _open_learning_file(self):
         self.learning_file = open(self.exp_dir + '/learning.csv', 'w', 0)
         self.learning_file.write('mean_loss,epsilon\n')
+
 
     def _update_results_file(self, epoch, num_episodes, holdout_sum):
         out = "{},{},{},{},{}\n".format(epoch, num_episodes, self.total_reward,
@@ -269,9 +272,10 @@ class NeuralAgent(Agent):
             plt.grid(color='r', linestyle='-', linewidth=1)
         plt.show()
 
+
     def _resize_observation(self, observation):
         # reshape linear to original image size, skipping the RAM bit
-        image = observation[128:].reshape(IMAGE_HEIGHT, IMAGE_WIDTH, 3)
+        image = observation[self.batch_size:].reshape(IMAGE_HEIGHT, IMAGE_WIDTH, 3)
         # convert from int32s
         image = np.array(image, dtype="uint8")
 
@@ -339,6 +343,7 @@ class NeuralAgent(Agent):
 
         return return_action
 
+
     def _choose_action(self, data_set, epsilon, cur_img, reward):
         """
         Add the most recent data to the data set and choose
@@ -355,16 +360,19 @@ class NeuralAgent(Agent):
             int_action = self.randGenerator.randint(0, self.num_actions - 1)
         return int_action
 
+
     def _do_training(self):
         """
         Returns the average loss for the current batch.
         May be overridden if a subclass needs to train the network
         differently.
         """
+        import pdb; pdb.set_trace()
         states, actions, rewards, next_states, terminals = \
                                 self.data_set.random_batch(self.batch_size)
-        return self.network.train(states, actions, rewards,
+        loss = self.network.train(states, actions, rewards,
                                   next_states, terminals)
+        return loss
 
 
     def agent_end(self, reward):
@@ -380,6 +388,7 @@ class NeuralAgent(Agent):
         self.episode_counter += 1
         self.step_counter += 1
         total_time = time.time() - self.start_time
+        import pdb; pdb.set_trace()
 
         if self.testing:
             self.total_reward += reward
@@ -404,6 +413,7 @@ class NeuralAgent(Agent):
         a file name can be provided by the experiment.
         """
         pass
+
 
     def agent_message(self, in_message):
         """
@@ -445,6 +455,7 @@ class NeuralAgent(Agent):
                                       holdout_sum / holdout_size)
         else:
             return "I don't know how to respond to your message"
+
 
 def main():
     AgentLoader.loadAgent(NeuralAgent())

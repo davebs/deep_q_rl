@@ -31,7 +31,8 @@ def run_epoch(epoch, num_steps, prefix):
     """
     steps_left = num_steps
     while steps_left > 0:
-        print prefix + " epoch: ", epoch, "steps_left: ", steps_left
+        print prefix + " EPOCH #", epoch, "*** steps left before update: ", steps_left
+        import pdb; pdb.set_trace()
         terminal = RLGlue.RL_episode(steps_left)
         if not terminal:
             RLGlue.RL_agent_message("episode_end")
@@ -45,7 +46,7 @@ def main():
     """
 
     parser = argparse.ArgumentParser(description='Neural rl experiment.')
-    parser.add_argument('--num_epochs', type=int, default=100,
+    parser.add_argument('--num_epochs', type=int, default=20,
                         help='Number of training epochs')
     parser.add_argument('--epoch_length', type=int, default=50000,
                         help='Number of steps per epoch')

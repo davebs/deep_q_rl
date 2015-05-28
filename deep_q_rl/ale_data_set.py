@@ -300,14 +300,14 @@ def test_random_batch():
 
 
 def test_memory_usage_ok():
-    dataset = DataSet(width=80, height=80, max_steps=1000000, phi_length=4)
+    dataset = DataSet(width=80, height=80, max_steps=10000, phi_length=4)
     last = time.time()
 
-    for i in xrange(1000000000):
-        if (i % 100000) == 0:
+    for i in xrange(10000):
+        if (i % 10000) == 0:
             print i
         dataset.add_sample(np.random.random((80, 80)), 1, 1, False)
-        if (i % 10007) == 0:
+        if (i % 10000) == 0:
             print time.time() - last
             print len(dataset)
         last = time.time()

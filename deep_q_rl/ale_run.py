@@ -10,12 +10,13 @@ import sys
 import os
 import argparse
 
-DEFAULT_BASE_ROM_PATH = "../roms/"
+DEFAULT_BASE_ROM_PATH = "."
 DEFAULT_ROM = 'breakout.bin'
 DEFAULT_PORT = 4096
-DEFAULT_STEPS_PER_EPOCH = 50000
-DEFAULT_EPOCHS = 100
-DEFAULT_STEPS_PER_TEST = 10000
+#DEFAULT_STEPS_PER_EPOCH = 50000
+DEFAULT_STEPS_PER_EPOCH = 500
+DEFAULT_EPOCHS = 200
+DEFAULT_STEPS_PER_TEST = 250
 DEFAULT_FRAME_SKIP = 4
 
 def main(args):
@@ -49,6 +50,9 @@ def main(args):
     parser.add_argument('--glue-port', dest="glue_port", type=int,
                         default=DEFAULT_PORT,
                         help='rlglue port (default: %(default)s)')
+    parser.add_argument('--nn_file', dest="nn_file", type=str,
+                        default=None,
+                        help='pickled model to resume')
     parameters, unknown = parser.parse_known_args(args)
 
     my_env = os.environ.copy()
@@ -66,9 +70,8 @@ def main(args):
     p1 = subprocess.Popen(['rl_glue'], env=my_env, close_fds=close_fds)
 
     # Start ALE
-    command = ['ale', '-game_controller', 'rlglue', '-send_rgb', 'true',
-               '-restricted_action_set', 'true', '-frame_skip',
-               str(parameters.frame_skip)]
+    command = ['/home/ds/Python/Arcade-Learning-Environment/ale', '-game_controller', 'rlglue', '-send_rgb', 'true',
+               '-restricted_action_set', 'true', '-frame_skip', str(parameters.frame_skip), '-disable_color_averaging', 'true']
     if not parameters.merge_frames:
         command.extend(['-disable_color_averaging', 'true'])
     if parameters.display_screen:
@@ -87,6 +90,9 @@ def main(args):
     command = ['./rl_glue_ale_agent.py']
     if parameters.experiment_prefix:
         command.extend(['--exp_pref', parameters.experiment_prefix])
+    if parameters.nn_file:
+        command.extend(['--nn_file', parameters.nn_file])
+
     p4 = subprocess.Popen(command + unknown, env=my_env, close_fds=close_fds)
 
     p1.wait()
